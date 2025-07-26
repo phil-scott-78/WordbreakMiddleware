@@ -1,0 +1,178 @@
+@page
+@model WordbreakMiddleware.Demo.Pages.IndexModel
+@{
+    ViewData["Title"] = "Demo";
+}
+
+<style>
+    .demo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .config-panel {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .config-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .config-row label {
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .checkbox-group label {
+        font-weight: normal;
+    }
+    
+    .sample-section {
+        margin-bottom: 40px;
+    }
+    
+    .sample-box {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .sample-box h3 {
+        margin-top: 0;
+        color: #333;
+    }
+    
+    .identifier {
+        background: #e8f4fd;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+    
+    .api-docs {
+        line-height: 1.8;
+    }
+    
+    button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    
+    button:hover {
+        background: #0052a3;
+    }
+    
+    .note {
+        background: #fff9e6;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    wbr {
+        background: #ff000020;
+        outline: 1px dashed red;
+    }
+</style>
+
+<div class="demo-container">
+    <h1>WordBreak Middleware Demo</h1>
+    
+    <p>This demo shows how the WordBreak middleware inserts <code>&lt;wbr&gt;</code> tags into dotted identifiers within heading elements to improve text wrapping in documentation.</p>
+    
+    <form method="get" class="config-panel">
+        <h2>Configuration</h2>
+        
+        <div class="config-row">
+            <label>
+                <input type="checkbox" name="wordbreak" value="on" @(Model.IsEnabled ? "checked" : "") />
+                Enable WordBreak Middleware
+            </label>
+        </div>
+        
+        <div class="config-row">
+            <label for="minchars">Minimum Characters:</label>
+            <input type="number" id="minchars" name="minchars" value="@Model.MinimumCharacters" min="5" max="50" />
+        </div>
+        
+        
+        <button type="submit">Apply Configuration</button>
+    </form>
+    
+    <div class="sample-section">
+        <h2>Sample Content</h2>
+        
+        <div class="sample-box">
+            <h3>System.Net.Http.HttpClientMessageHandler</h3>
+            <p class="api-docs">
+                The HttpClientMessageHandler class inherits from DelegatingHandler and is used in conjunction with HttpClient. For configuration, use the HttpClientHandlerOptions class.
+            </p>
+        </div>
+        
+        <div class="sample-box">
+            <h3>System.Net.Http.HttpClient and Microsoft.Extensions.DependencyInjection.ServiceCollection</h3>
+            <p class="api-docs">
+                Common types include System.Net.Http.HttpClient, Microsoft.Extensions.DependencyInjection.ServiceCollection, and Microsoft.AspNetCore.Mvc.ControllerBase.
+            </p>
+        </div>
+        
+        <div class="sample-box">
+            <h3>com.example.httpClient.Factory</h3>
+            <p class="api-docs">
+                Java-style package names like com.example.httpClient.Factory demonstrate namespace breaking.
+            </p>
+        </div>
+        
+        <div class="sample-box">
+            <h3>org.springframework.web.servlet.DispatcherServlet</h3>
+            <p class="api-docs">
+                Framework classes often have long namespace paths that benefit from word breaking.
+            </p>
+        </div>
+        
+        <div class="sample-box">
+            <h3>javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction</h3>
+            <p class="api-docs">
+                Some exceptionally long namespace paths benefit from breaking at each dot.
+            </p>
+        </div>
+        
+        <div class="sample-box">
+            <h3>System.Collections.Generic.Dictionary</h3>
+            <p class="api-docs">
+                Generic types like IEnumerable&lt;TSource&gt;, Dictionary&lt;TKey,TValue&gt;, and Func&lt;T1,T2,TResult&gt; are common in .NET.
+            </p>
+        </div>
+    </div>
+    
+    <div class="sample-box">
+        <h3>How It Works</h3>
+        <p>The WordBreak middleware:</p>
+        <ul>
+            <li><strong>Only processes heading elements (h1-h6):</strong> Text in paragraphs and other elements is not modified</li>
+            <li><strong>Only breaks at dots:</strong> Inserts &lt;wbr&gt; after each dot in namespaced identifiers</li>
+            <li><strong>Respects minimum character length:</strong> Only processes identifiers longer than the configured minimum</li>
+        </ul>
+    </div>
+</div>
