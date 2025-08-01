@@ -1,7 +1,5 @@
 using System.Text;
 using AngleSharp;
-using AngleSharp.Dom;
-using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Http;
 
 namespace WordbreakMiddleware;
@@ -22,7 +20,7 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
     {
         var originalBodyStream = context.Response.Body;
 
-        using var responseBody = new MemoryStream();
+        await using var responseBody = new MemoryStream();
         context.Response.Body = responseBody;
 
         await next(context);
@@ -79,10 +77,10 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
         foreach (var element in elements.ToArray()) // ToArray creates a fixed snapshot
         {
             // Check if element only contains text (no HTML tags)
-            if (element.InnerHtml?.Trim() != element.TextContent?.Trim())
+            if (element.InnerHtml?.Trim() != element.TextContent.Trim())
                 continue;
                 
-            var processedText = ProcessText(element.TextContent ?? "");
+            var processedText = ProcessText(element.TextContent);
             if (processedText != element.TextContent)
             {
                 // Apply changes immediately using innerHTML which is safer
@@ -124,7 +122,7 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
         // Process the last word if any
         if (wordStart >= span.Length) return result.ToString();
         {
-            var wordSpan = span.Slice(wordStart);
+            var wordSpan = span[wordStart..];
             ProcessWord(wordSpan, result);
         }
 
@@ -151,8 +149,12 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
         
         while (dotIndex != -1)
         {
-            // Append text up to and including the dot
-            result.Append(word.Slice(start, dotIndex - start + 1));
+            // Process the segment before the dot
+            var segment = word.Slice(start, dotIndex - start);
+            ProcessSegment(segment, result);
+            
+            // Append the dot
+            result.Append('.');
             
             // Add word break after the dot if there's more content
             if (dotIndex + 1 < word.Length)
@@ -175,10 +177,42 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
             }
         }
         
-        // Append remaining part after last dot
+        // Process remaining part after last dot
         if (start < word.Length)
         {
-            result.Append(word[start..]);
+            var segment = word[start..];
+            ProcessSegment(segment, result);
+        }
+    }
+    
+    private void ProcessSegment(ReadOnlySpan<char> segment, StringBuilder result)
+    {
+        // If segment is shorter than minimum characters, don't process it
+        if (segment.Length < options.MinimumCharacters)
+        {
+            result.Append(segment);
+            return;
+        }
+        
+        // Process uppercase letter breaks within the segment
+        var segmentStart = 0;
+        
+        for (var i = 1; i < segment.Length; i++)
+        {
+            // Check if current character is uppercase and previous is lowercase
+            if (char.IsUpper(segment[i]) && i > 0 && char.IsLower(segment[i - 1]))
+            {
+                // Append text up to the uppercase letter
+                result.Append(segment.Slice(segmentStart, i - segmentStart));
+                result.Append(options.WordBreakCharacters);
+                segmentStart = i;
+            }
+        }
+        
+        // Append remaining part of segment
+        if (segmentStart < segment.Length)
+        {
+            result.Append(segment[segmentStart..]);
         }
     }
 }

@@ -30,5 +30,5 @@ public class WordbreakMiddlewareOptions
     /// Default is "h1, h2, h3, h4, h5, h6".
     /// Set to null to use the default selector.
     /// </summary>
-    public string CssSelector { get; set; } = "h1, h2, h3, h4, h5, h6, .text-break";
+    public string CssSelector { get; set; } = "h1, h2, h3, h4, h5, h6,.text-break";
 }

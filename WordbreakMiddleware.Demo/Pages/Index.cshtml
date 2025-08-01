@@ -124,6 +124,17 @@
         <h2>Sample Content</h2>
         
         <div class="sample-box">
+            <code class="text-break">@("System.IEquatable<MyLittleContentEngine.Services.Content.MarkdigExtensions.CodeHighlighting.CodeHighlightRenderOptions>")></code>
+        </div>
+        
+        <div class="sample-box">
+            <h3>MyLittleContentEngine.IntegrationTests.ExampleProjects.MultipleContentSourceExampleWebApplicationFactory</h3>
+            <p class="api-docs">
+                This demonstrates how uppercase letter breaking only applies to segments longer than the minimum character width.
+            </p>
+        </div>
+        
+        <div class="sample-box">
             <h3>System.Net.Http.HttpClientMessageHandler</h3>
             <p class="api-docs">
                 The HttpClientMessageHandler class inherits from DelegatingHandler and is used in conjunction with HttpClient. For configuration, use the HttpClientHandlerOptions class.
@@ -170,9 +181,10 @@
         <h3>How It Works</h3>
         <p>The WordBreak middleware:</p>
         <ul>
-            <li><strong>Only processes heading elements (h1-h6):</strong> Text in paragraphs and other elements is not modified</li>
-            <li><strong>Only breaks at dots:</strong> Inserts &lt;wbr&gt; after each dot in namespaced identifiers</li>
-            <li><strong>Respects minimum character length:</strong> Only processes identifiers longer than the configured minimum</li>
+            <li><strong>Processes heading elements (h1-h6) and elements with .text-break class:</strong> Text in paragraphs and other elements is not modified</li>
+            <li><strong>Breaks at dots:</strong> Inserts &lt;wbr&gt; after each dot in namespaced identifiers</li>
+            <li><strong>Breaks at uppercase letters in long segments:</strong> For segments between dots that are longer than the minimum character width, inserts &lt;wbr&gt; before uppercase letters that follow lowercase letters</li>
+            <li><strong>Respects minimum character length:</strong> Only processes identifiers and segments longer than the configured minimum</li>
         </ul>
     </div>
 </div>

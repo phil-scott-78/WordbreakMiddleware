@@ -50,6 +50,18 @@ public class WordBreakMiddlewareTests : IDisposable
         Assert.Contains("System.Net.Http.HttpClient", content);
         Assert.DoesNotContain("<wbr>", content);
     }
+    
+    [Fact]
+    public async Task Should_Process_Body_Text_With_A_Text_Break()
+    {
+        var html = "<html><body>Short HttpClient text <code class=\"text-break\">MyLittleContentEngine.Services.Content.TableOfContents.ContentTocItem</code></body></html>";
+        var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // Text in code.text-break should be processed
+        // MyLittleContentEngine (21 chars), TableOfContents (15 chars), ContentTocItem (14 chars) will have uppercase breaks
+        Assert.Contains("My<wbr>Little<wbr>Content<wbr>Engine.<wbr>Services.<wbr>Content.<wbr>Table<wbr>Of<wbr>Contents.<wbr>Content<wbr>Toc<wbr>Item", content);
+    }
 
     [Fact]
     public async Task Should_Process_Text_In_Headings()
@@ -58,7 +70,8 @@ public class WordBreakMiddlewareTests : IDisposable
         var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
         var content = await response.Content.ReadAsStringAsync();
         
-        Assert.Contains("System.<wbr>Net.<wbr>Http.<wbr>HttpClient", content);
+        // HttpClient is longer than 10 chars, so it will have uppercase breaks
+        Assert.Contains("System.<wbr>Net.<wbr>Http.<wbr>Http<wbr>Client", content);
     }
 
     [Fact]
@@ -68,7 +81,8 @@ public class WordBreakMiddlewareTests : IDisposable
         var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
         var content = await response.Content.ReadAsStringAsync();
         
-        Assert.Contains("System.<wbr>Net.<wbr>Http.<wbr>HttpClientHandler", content);
+        // HttpClientHandler is longer than 10 chars, so it will have uppercase breaks
+        Assert.Contains("System.<wbr>Net.<wbr>Http.<wbr>Http<wbr>Client<wbr>Handler", content);
     }
 
     [Fact]
@@ -84,7 +98,7 @@ public class WordBreakMiddlewareTests : IDisposable
         // Script content should not be processed
         Assert.Contains("var System.Net.Http = 'test'", content);
         // Heading content should be processed
-        Assert.Contains("<h3>System.<wbr>Net.<wbr>Http.<wbr>HttpClient</h3>", content);
+        Assert.Contains("<h3>System.<wbr>Net.<wbr>Http.<wbr>Http<wbr>Client</h3>", content);
     }
 
     [Fact]
@@ -166,8 +180,8 @@ public class WordBreakMiddlewareTests : IDisposable
         var content = await response.Content.ReadAsStringAsync();
         
         Assert.Contains("<h1>System.<wbr>Net.<wbr>Http</h1>", content);
-        Assert.Contains("<h2>Microsoft.<wbr>Extensions.<wbr>DependencyInjection</h2>", content);
-        Assert.Contains("<h3>System.<wbr>IO.<wbr>FileSystem</h3>", content);
+        Assert.Contains("<h2>Microsoft.<wbr>Extensions.<wbr>Dependency<wbr>Injection</h2>", content);
+        Assert.Contains("<h3>System.<wbr>IO.<wbr>File<wbr>System</h3>", content);
         Assert.Contains("<p>System.Net.Http in paragraph</p>", content); // Not processed in paragraph
     }
 
@@ -262,6 +276,7 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
         Assert.DoesNotContain("System.<wbr>Net.<wbr>Http", content);
         
         // Microsoft.Extensions.DependencyInjection.ServiceCollection is > 30 chars, should be processed
+        // But individual segments are all < 30 chars, so no uppercase breaks within segments
         Assert.Contains("Microsoft.<wbr>Extensions.<wbr>DependencyInjection.<wbr>ServiceCollection", content);
     }
 
@@ -332,5 +347,68 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
         Assert.Contains("System.<wbr>Net.<wbr>Http", content);
         Assert.Contains("</h1>", content);
         Assert.Contains("</h2>", content);
+    }
+    
+    [Fact]
+    public async Task Should_Break_On_Uppercase_Letters_In_Long_Segments()
+    {
+        CreateServer(options => options.MinimumCharacters = 10);
+
+        var html = "<html><body><h1>MyLittleContentEngine.IntegrationTests.ExampleProjects.MultipleContentSourceExampleWebApplicationFactory</h1></body></html>";
+        var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // MyLittleContentEngine is 21 chars, IntegrationTests is 16 chars, ExampleProjects is 15 chars, MultipleContentSourceExampleWebApplicationFactory is 49 chars
+        // All segments are >= 10 chars, so all will have uppercase breaks
+        Assert.Contains("My<wbr>Little<wbr>Content<wbr>Engine.<wbr>Integration<wbr>Tests.<wbr>Example<wbr>Projects.<wbr>Multiple<wbr>Content<wbr>Source<wbr>Example<wbr>Web<wbr>Application<wbr>Factory", content);
+    }
+    
+    [Fact]
+    public async Task Should_Not_Break_On_Uppercase_In_Short_Segments()
+    {
+        CreateServer(options => options.MinimumCharacters = 20);
+
+        var html = "<h1>System.Net.HttpClient</h1>";
+        var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // Should break on dots
+        Assert.Contains("System.<wbr>Net.<wbr>HttpClient", content);
+        
+        // HttpClient is less than 20 chars, so no uppercase breaks
+        Assert.DoesNotContain("Http<wbr>Client", content);
+    }
+    
+    [Fact]
+    public async Task Should_Handle_Consecutive_Uppercase_Letters()
+    {
+        CreateServer(options => options.MinimumCharacters = 10);
+
+        var html = "<h1>System.IO.XMLHttpRequestFactory</h1>";
+        var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // Should break on dots
+        Assert.Contains("System.<wbr>IO.<wbr>", content);
+        
+        // Should break when going from lowercase to uppercase
+        Assert.Contains("XMLHttp<wbr>Request<wbr>Factory", content);
+        
+        // Should not break between consecutive uppercase letters
+        Assert.DoesNotContain("X<wbr>M<wbr>L", content);
+        Assert.DoesNotContain("I<wbr>O", content);
+    }
+    
+    [Fact]
+    public async Task Should_Process_Text_Break_Class_With_Uppercase()
+    {
+        CreateServer(options => options.MinimumCharacters = 10);
+
+        var html = "<html><body><code class=\"text-break\">MyLittleContentEngine.Services.Content.TableOfContents.ContentTocItem</code></body></html>";
+        var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // Should break on dots
+        Assert.Contains("My<wbr>Little<wbr>Content<wbr>Engine.<wbr>Services.<wbr>Content.<wbr>Table<wbr>Of<wbr>Contents.<wbr>Content<wbr>Toc<wbr>Item", content);
     }
 }
