@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace WordbreakMiddleware.Tests;
 
 public class WordBreakProcessorTests
@@ -68,14 +66,14 @@ public class WordBreakProcessorTests
     }
     
     [Theory]
-    // Words without dots are not processed for uppercase breaks
-    [InlineData("HttpClientHandler", "HttpClientHandler")]
-    [InlineData("ServiceCollection", "ServiceCollection")]
-    [InlineData("DependencyInjection", "DependencyInjection")]
-    // Words with dots get processed
+    // Words now always get uppercase breaks if they meet minimum length
+    [InlineData("HttpClientHandler", "Http<wbr>Client<wbr>Handler")]
+    [InlineData("ServiceCollection", "Service<wbr>Collection")]
+    [InlineData("DependencyInjection", "Dependency<wbr>Injection")]
+    // Words with dots also get processed
     [InlineData("System.HttpClientHandler", "System.<wbr>Http<wbr>Client<wbr>Handler")]
     [InlineData("MyNamespace.ServiceCollection", "My<wbr>Namespace.<wbr>Service<wbr>Collection")] // MyNamespace is 11 chars, gets uppercase breaks
-    public void ProcessText_OnlyBreaksUppercaseInWordsWithDots(string input, string expected)
+    public void ProcessText_AlwaysBreaksUppercaseInLongWords(string input, string expected)
     {
         var processor = CreateProcessor(minimumCharacters: 10);
         var result = processor.ProcessText(input);
@@ -84,7 +82,7 @@ public class WordBreakProcessorTests
     
     [Theory]
     [InlineData("System.XMLHttpRequest", "System.<wbr>XMLHttp<wbr>Request")] // XMLHttpRequest is 14 chars
-    [InlineData("System.IOStream", "System.<wbr>IOStream")] // IOStream is 8 chars, no uppercase breaks
+    [InlineData("System.IOStream", "System.<wbr>IOStream")] // IOStream is 8 chars, < 10, no uppercase breaks
     [InlineData("System.HTTPSConnection", "System.<wbr>HTTPSConnection")] // HTTPSConnection is 15 chars but no lowercase->uppercase transition
     public void ProcessText_HandlesConsecutiveUppercaseLetters(string input, string expected)
     {
@@ -118,9 +116,9 @@ public class WordBreakProcessorTests
     
     [Theory]
     [InlineData("The System.Net.Http.HttpClient class", "The System.<wbr>Net.<wbr>Http.<wbr>Http<wbr>Client class")]
-    [InlineData("Use HttpClientHandler for configuration", "Use HttpClientHandler for configuration")] // No dots, no processing
+    [InlineData("Use HttpClientHandler for configuration", "Use Http<wbr>Client<wbr>Handler for configuration")] // Now processes uppercase breaks
     [InlineData("Use System.HttpClientHandler for configuration", "Use System.<wbr>Http<wbr>Client<wbr>Handler for configuration")]
-    [InlineData("Multiple words like HttpClient and ServiceCollection here", "Multiple words like HttpClient and ServiceCollection here")] // No dots, no processing
+    [InlineData("Multiple words like HttpClient and ServiceCollection here", "Multiple words like Http<wbr>Client and Service<wbr>Collection here")] // Now processes uppercase breaks
     public void ProcessText_ProcessesMultipleWordsInSentences(string input, string expected)
     {
         var processor = CreateProcessor(minimumCharacters: 10);
@@ -151,11 +149,11 @@ public class WordBreakProcessorTests
     }
     
     [Theory]
-    [InlineData("camelCase", "camelCase")] // No dots, no processing
-    [InlineData("PascalCase", "PascalCase")] // No dots, no processing
+    [InlineData("camelCase", "camelCase")] // 9 chars, < 10, no processing
+    [InlineData("PascalCase", "Pascal<wbr>Case")] // 10 chars, gets uppercase breaks
     [InlineData("lowercase", "lowercase")]
     [InlineData("UPPERCASE", "UPPERCASE")]
-    [InlineData("namespace.PascalCase", "namespace.<wbr>Pascal<wbr>Case")] // With dot and > 10 chars segment
+    [InlineData("namespace.PascalCase", "namespace.<wbr>Pascal<wbr>Case")] // With dot, both segments get uppercase breaks
     public void ProcessText_HandlesVariousCasingStyles(string input, string expected)
     {
         var processor = CreateProcessor(minimumCharacters: 10);
@@ -170,7 +168,7 @@ public class WordBreakProcessorTests
     [InlineData("...Multiple...", ".<wbr>.<wbr>.<wbr>Multiple.<wbr>.<wbr>.")] // 14 chars, gets dot breaks (trailing dots don't get <wbr> after)
     [InlineData("VeryLongWord.txt", "Very<wbr>Long<wbr>Word.<wbr>txt")] // VeryLongWord is 12 chars
     [InlineData("Short.txt", "Short.txt")] // 9 chars, < 10, no processing
-    [InlineData("LongerWord", "LongerWord")] // 10 chars but no dots, no processing
+    [InlineData("LongerWord", "Longer<wbr>Word")] // 10 chars, gets uppercase breaks
     public void ProcessText_HandlesEdgeCasesWithDots(string input, string expected)
     {
         var processor = CreateProcessor(minimumCharacters: 10);

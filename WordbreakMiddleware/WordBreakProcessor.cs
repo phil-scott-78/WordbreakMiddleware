@@ -67,11 +67,12 @@ public class WordBreakProcessor
             return;
         }
         
-        // Only process words with dots
+        // Check if word contains dots
         var dotIndex = word.IndexOf('.');
         if (dotIndex == -1)
         {
-            result.Append(word);
+            // No dots, but still process uppercase breaks if word meets minimum length
+            ProcessSegment(word, result);
             return;
         }
         
@@ -117,7 +118,7 @@ public class WordBreakProcessor
     
     private void ProcessSegment(ReadOnlySpan<char> segment, StringBuilder result)
     {
-        // If segment is shorter than minimum characters, don't process it
+        // If segment is shorter than minimum characters, don't process uppercase breaks
         if (segment.Length < _options.MinimumCharacters)
         {
             result.Append(segment);
@@ -129,8 +130,8 @@ public class WordBreakProcessor
         
         for (var i = 1; i < segment.Length; i++)
         {
-            // Check if current character is uppercase and previous is lowercase
-            if (char.IsUpper(segment[i]) && i > 0 && char.IsLower(segment[i - 1]))
+            // Check if current character is uppercase and previous is lowercase or digit
+            if (char.IsUpper(segment[i]) && i > 0 && (char.IsLower(segment[i - 1]) || char.IsDigit(segment[i - 1])))
             {
                 // Append text up to the uppercase letter
                 result.Append(segment.Slice(segmentStart, i - segmentStart));

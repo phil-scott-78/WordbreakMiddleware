@@ -1,4 +1,3 @@
-using System.Text;
 using AngleSharp;
 using Microsoft.AspNetCore.Http;
 
@@ -78,7 +77,7 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
         foreach (var element in elements.ToArray()) // ToArray creates a fixed snapshot
         {
             // Check if element only contains text (no HTML tags)
-            if (element.InnerHtml?.Trim() != element.TextContent.Trim())
+            if (element.InnerHtml.Trim() != element.TextContent.Trim())
                 continue;
                 
             var processedText = _processor.ProcessText(element.TextContent);

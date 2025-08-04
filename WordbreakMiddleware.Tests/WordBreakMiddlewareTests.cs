@@ -1,11 +1,7 @@
-using System.Net;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace WordbreakMiddleware.Tests;
 
@@ -17,7 +13,7 @@ public class WordBreakMiddlewareTests : IDisposable
     public WordBreakMiddlewareTests()
     {
         var builder = new WebHostBuilder()
-            .ConfigureServices(services => { })
+            .ConfigureServices(_ => { })
             .Configure(app =>
             {
                 app.UseWordBreak(options => options.MinimumCharacters = 10);
@@ -35,8 +31,8 @@ public class WordBreakMiddlewareTests : IDisposable
 
     public void Dispose()
     {
-        _client?.Dispose();
-        _server?.Dispose();
+        _client.Dispose();
+        _server.Dispose();
     }
 
     [Fact]
@@ -144,27 +140,25 @@ public class WordBreakMiddlewareTests : IDisposable
     }
 
     [Fact]
-    public async Task Should_Not_Process_CamelCase_Without_Dots()
+    public async Task Should_Process_CamelCase_Even_Without_Dots()
     {
         var html = "<html><body><h1>The httpClientMessageHandler variable</h1></body></html>";
         var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
         var content = await response.Content.ReadAsStringAsync();
         
-        // No dots, so no word breaks
-        Assert.Contains("httpClientMessageHandler", content);
-        Assert.DoesNotContain("<wbr>", content);
+        // httpClientMessageHandler is 24 chars, gets uppercase breaks
+        Assert.Contains("http<wbr>Client<wbr>Message<wbr>Handler", content);
     }
 
     [Fact]
-    public async Task Should_Not_Process_Mixed_Case_Without_Dots()
+    public async Task Should_Process_Mixed_Case_Even_Without_Dots()
     {
         var html = "<html><body><h2>Use HttpClient2MessageHandler3 class</h2></body></html>";
         var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
         var content = await response.Content.ReadAsStringAsync();
         
-        // No dots, so no word breaks
-        Assert.Contains("HttpClient2MessageHandler3", content);
-        Assert.DoesNotContain("<wbr>", content);
+        // HttpClient2MessageHandler3 is 26 chars, gets uppercase breaks
+        Assert.Contains("Http<wbr>Client2<wbr>Message<wbr>Handler3", content);
     }
 
     [Fact]
@@ -205,7 +199,7 @@ public class WordBreakMiddlewareTests : IDisposable
     public async Task Should_Not_Process_Non_Html_Content()
     {
         var builder = new WebHostBuilder()
-            .ConfigureServices(services => { })
+            .ConfigureServices(_ => { })
             .Configure(app =>
             {
                 app.UseWordBreak();
@@ -222,6 +216,7 @@ public class WordBreakMiddlewareTests : IDisposable
         var response = await client.GetAsync("/");
         var content = await response.Content.ReadAsStringAsync();
         
+        // Non-HTML content is not processed
         Assert.Equal("HttpClientMessageHandler", content);
     }
 }
@@ -240,7 +235,7 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
     private void CreateServer(Action<WordbreakMiddlewareOptions> configure)
     {
         var builder = new WebHostBuilder()
-            .ConfigureServices(services => { })
+            .ConfigureServices(_ => { })
             .Configure(app =>
             {
                 var options = new WordbreakMiddlewareOptions()
@@ -297,7 +292,7 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
     public async Task Should_Process_Non_Html_When_ProcessHtmlOnly_Is_False()
     {
         var builder = new WebHostBuilder()
-            .ConfigureServices(services => { })
+            .ConfigureServices(_ => { })
             .Configure(app =>
             {
                 app.UseWordBreak(options => 
@@ -318,14 +313,14 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
         var response = await client.GetAsync("/");
         var content = await response.Content.ReadAsStringAsync();
         
-        // For non-HTML content with ProcessHtmlOnly=false, word breaks should be inserted
+        // For non-HTML content with ProcessHtmlOnly=false, word breaks should be inserted with uppercase breaks
         Assert.Contains("System.<wbr>Net.<wbr>Http", content);
     }
 
     [Fact]
     public async Task Should_Handle_Empty_Response()
     {
-        CreateServer(options => { });
+        CreateServer(_ => { });
         
         var html = "";
         var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
@@ -337,7 +332,7 @@ public class WordBreakMiddlewareConfigurationTests : IDisposable
     [Fact]
     public async Task Should_Handle_Malformed_Html()
     {
-        CreateServer(options => { });
+        CreateServer(_ => { });
 
         var html = "<h1>System.Net.Http <h2>Another System.Net.Http";
         var response = await _client!.GetAsync($"/?response={Uri.EscapeDataString(html)}");
