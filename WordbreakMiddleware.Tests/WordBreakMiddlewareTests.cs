@@ -47,6 +47,19 @@ public class WordBreakMiddlewareTests : IDisposable
         Assert.DoesNotContain("<wbr>", content);
     }
     
+    
+    [Fact]
+    public async Task Should_Not_Remove_DocType()
+    {
+        var html = "<!DOCTYPE html><html><body>Short HttpClient text <code class=\"text-break\">MyLittleContentEngine.Services.Content.TableOfContents.ContentTocItem</code></body></html>";
+        var response = await _client.GetAsync($"/?response={Uri.EscapeDataString(html)}");
+        var content = await response.Content.ReadAsStringAsync();
+        
+        // Text in code.text-break should be processed
+        // MyLittleContentEngine (21 chars), TableOfContents (15 chars), ContentTocItem (14 chars) will have uppercase breaks
+        Assert.Contains("<!DOCTYPE html>", content);
+    }
+    
     [Fact]
     public async Task Should_Process_Body_Text_With_A_Text_Break()
     {

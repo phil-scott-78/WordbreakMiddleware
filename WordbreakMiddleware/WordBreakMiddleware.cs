@@ -88,6 +88,6 @@ public class WordBreakMiddleware(RequestDelegate next, WordbreakMiddlewareOption
             }
         }
         
-        return document.DocumentElement.OuterHtml;
+        return document.ToHtml();
     }
 }
